@@ -107,6 +107,10 @@ multipart_data: {{ endpoint.multipart_body.get_type_string() }},
 {% if endpoint.json_body %}
 json_body: {{ endpoint.json_body.get_type_string() }},
 {% endif %}
+{# TEXT body if any #}
+{% if endpoint.text_body %}
+text_body: {{ endpoint.text_body.get_type_string() }},
+{% endif %}
 {# query parameters #}
 {% for parameter in endpoint.query_parameters.values() %}
 {{ parameter.to_string() }},
@@ -134,6 +138,9 @@ multipart_data=multipart_data,
 {% endif %}
 {% if endpoint.json_body %}
 json_body=json_body,
+{% endif %}
+{% if endpoint.text_body %}
+text_body=text_body,
 {% endif %}
 {% for parameter in endpoint.query_parameters.values() %}
 {{ parameter.python_name }}={{ parameter.python_name }},

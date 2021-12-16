@@ -103,6 +103,7 @@ class Endpoint:
     responses: List[Response] = field(default_factory=list)
     form_body_class: Optional[Class] = None
     json_body: Optional[Property] = None
+    text_body: Optional[Property] = None
     multipart_body: Optional[Property] = None
     errors: List[ParseError] = field(default_factory=list)
     used_python_identifiers: Set[PythonIdentifier] = field(default_factory=set)
@@ -157,6 +158,24 @@ class Endpoint:
         return None, schemas
 
     @staticmethod
+    def parse_request_text_body(
+        *, body: oai.RequestBody, schemas: Schemas, parent_name: str, config: Config
+    ) -> Tuple[Union[Property, PropertyError, None], Schemas]:
+        """Return text_body"""
+        body_content = body.content
+        text_body = body_content.get("text/plain")
+        if text_body is not None and text_body.media_type_schema is not None:
+            return property_from_data(
+                name="text_body",
+                required=True,
+                data=text_body.media_type_schema,
+                schemas=schemas,
+                parent_name=parent_name,
+                config=config,
+            )
+        return None, schemas
+
+    @staticmethod
     def _add_body(
         *,
         endpoint: "Endpoint",
@@ -183,6 +202,19 @@ class Endpoint:
                 schemas,
             )
 
+        text_body, schemas = Endpoint.parse_request_text_body(
+            body=data.requestBody, schemas=schemas, parent_name=endpoint.name, config=config
+        )
+        if isinstance(text_body, ParseError):
+            return (
+                ParseError(
+                    header=f"Cannot parse TEXT body of endpoint {endpoint.name}",
+                    detail=text_body.detail,
+                    data=text_body.data,
+                ),
+                schemas,
+            )
+
         multipart_body, schemas = Endpoint.parse_multipart_body(
             body=data.requestBody, schemas=schemas, parent_name=endpoint.name, config=config
         )
@@ -204,6 +236,9 @@ class Endpoint:
         if json_body is not None:
             endpoint.json_body = json_body
             endpoint.relative_imports.update(endpoint.json_body.get_imports(prefix="..."))
+        if text_body is not None:
+            endpoint.text_body = text_body
+            endpoint.relative_imports.update(endpoint.text_body.get_imports(prefix="..."))
         return endpoint, schemas
 
     @staticmethod

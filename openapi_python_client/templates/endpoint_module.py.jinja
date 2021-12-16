@@ -35,6 +35,10 @@ def _get_kwargs(
 
     {{ json_body(endpoint) | indent(4) }}
 
+    {% if endpoint.text_body %}
+    headers.update({"Content-Type": "text/plain"})
+    {% endif %}
+
     {{ multipart_body(endpoint) | indent(4) }}
 
     return {
@@ -48,6 +52,8 @@ def _get_kwargs(
         "files": {{ "multipart_" + endpoint.multipart_body.python_name }},
         {% elif endpoint.json_body %}
         "json": {{ "json_" + endpoint.json_body.python_name }},
+        {% elif endpoint.text_body %}
+        "content": {{ endpoint.text_body.python_name }},
         {% endif %}
         {% if endpoint.query_parameters %}
         "params": params,
